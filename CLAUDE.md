@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 `awesome-subtitles` generates, edits, and burns subtitles for a video **entirely in the browser** — the video never leaves the user's machine, and the app is a static site (deployable to GitHub Pages, no backend).
 
-The user flow: open a video → the app finds embedded subtitle tracks, or transcribes speech with Whisper, or (no audio) starts with an empty track to type into → edit cues on a timeline synced to the player → export with **toggleable** (soft) or **burnt-in** subtitles.
+The user flow: open a video → the app finds embedded subtitle tracks, or transcribes speech with Whisper, or (no audio) starts with an empty track to type into → edit cues on a timeline synced to the player → export the video with **toggleable** (soft) subtitles.
 
 ## Commands
 
@@ -43,7 +43,7 @@ Worker message shapes are typed in `src/workers/messages.ts`.
 - **No cross-origin isolation (deliberate).** We do **not** set COOP/COEP and there is **no service worker**. Multi-threaded ffmpeg would need `SharedArrayBuffer` (hence cross-origin isolation), but on GitHub Pages the only way to get it is a header-injecting service worker (coi-serviceworker), which proved fragile here — it intercepted and failed fetches, and COEP `require-corp` risks blocking the cross-origin model/CDN downloads. So we run **single-threaded** and skip isolation entirely. `index.html` carries a one-time cleanup that unregisters any stale coi-serviceworker from earlier deploys — leave it until you're confident no client still has the old SW. To re-enable multi-threading, you'd need reliable COOP/COEP (e.g. self-host every asset same-origin) and the MT core would activate automatically via the `crossOriginIsolated` check in `service.ts`.
 - **GitHub Pages base path.** `vite.config.ts` sets `base` to `/awesome-subtitles/` (override with the `VITE_BASE` env var for a custom domain / user page). Use root-relative or imported asset URLs so the base is applied; don't hard-code `/`.
 - **Don't bundle models or ffmpeg core.** Whisper/caption models load from the Hugging Face CDN and cache in the browser; ffmpeg core loads from unpkg. Bundling them would blow past GitHub Pages' 100 MB/file limit. The ONNX runtime WASM (~21 MB) is emitted to `dist/assets` and only fetched when the WASM backend is used.
-- **Burn-in is the slow path** — it re-encodes video with libx264 in WASM, single-threaded and CPU-only, so it's slow on long/HD clips. Soft-sub export is a stream copy and fast. Don't conflate them.
+- **Export is soft subs only.** `exportWithSoftSubs` stream-copies video/audio and muxes the edited cues as a soft subtitle track (`mov_text` for MP4) — fast, no re-encode. Burnt-in (re-encoding the captions into the picture) was removed; if reintroducing it, note that single-threaded WASM libx264 re-encoding is very slow.
 
 ## Conventions
 

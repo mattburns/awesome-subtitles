@@ -187,35 +187,6 @@ export class FFmpegService {
     )
   }
 
-  /**
-   * Burnt-in subtitles: render the cues into the picture with the `subtitles`
-   * filter. Re-encodes video (CPU-only here), so it is the slow path.
-   */
-  async exportWithBurnedSubs(
-    file: File,
-    srt: string,
-    outName = 'output.mp4',
-    onProgress?: ProgressFn,
-  ): Promise<Uint8Array> {
-    return this.exportInternal(
-      file,
-      srt,
-      [
-        '-i', 'in.bin',
-        '-vf', 'subtitles=subs.srt',
-        '-c:v', 'libx264',
-        '-preset', 'ultrafast',
-        '-crf', '23',
-        '-c:a', 'copy',
-        // Burned in, so don't also carry a soft subtitle track in the output.
-        '-sn',
-        outName,
-      ],
-      outName,
-      onProgress,
-    )
-  }
-
   private async exportInternal(
     file: File,
     srt: string,

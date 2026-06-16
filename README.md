@@ -10,7 +10,7 @@ Automatically generate editable subtitles to embed or burn — **entirely in you
    - **transcribe speech** with Whisper; otherwise (no audio)
    - start with an **empty track** to type subtitles into manually.
 3. **Edit** cues — text and timing — on a timeline synced to the video player. Drag a cue's left/right edge to adjust its start/end; cues snap to tenths of a second and can't overlap.
-4. **Export** with either **toggleable** (soft) subtitles (fast, stream-copied) or **burnt-in** subtitles (re-encoded into the picture).
+4. **Export** the video with **toggleable** (soft) subtitles — a soft track players can switch on or off, muxed in by stream-copying the video (no re-encode, so it's fast).
 
 ## Develop
 
@@ -26,7 +26,7 @@ Requires a modern browser. WebGPU (Chrome/Edge, recent Safari/Firefox) makes the
 
 Pushing to `main` builds and publishes to GitHub Pages via `.github/workflows/deploy.yml`. The site is served from `/awesome-subtitles/`; set the `VITE_BASE` env var at build time for a custom domain or user/org page.
 
-> **How is this serverless?** All processing runs as WebAssembly / WebGPU in your browser; nothing is uploaded. ffmpeg runs single-threaded (no `SharedArrayBuffer` / cross-origin-isolation headers needed, which GitHub Pages can't set), so burn-in re-encoding is CPU-bound and slower than a desktop ffmpeg. Models and the ffmpeg core are fetched from CDNs (Hugging Face / unpkg) and cached locally on first use.
+> **How is this serverless?** All processing runs as WebAssembly / WebGPU in your browser; nothing is uploaded. ffmpeg runs single-threaded (no `SharedArrayBuffer` / cross-origin-isolation headers needed, which GitHub Pages can't set). Models and the ffmpeg core are fetched from CDNs (Hugging Face / unpkg) and cached locally on first use.
 
 ## Tech
 
