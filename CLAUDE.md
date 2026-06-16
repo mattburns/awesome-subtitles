@@ -6,15 +6,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 `awesome-subtitles` generates, edits, and burns subtitles for a video **entirely in the browser** — the video never leaves the user's machine, and the app is a static site (deployable to GitHub Pages, no backend).
 
-The user flow: open a video → the app finds embedded subtitle tracks, or transcribes speech with Whisper, or (for silent video) describes frames every 5s → edit cues on a timeline synced to the player → export with **toggleable** (soft) or **burnt-in** subtitles.
+The user flow: open a video → the app finds embedded subtitle tracks, or transcribes speech with Whisper, or (no audio) starts with an empty track to type into → edit cues on a timeline synced to the player → export with **toggleable** (soft) or **burnt-in** subtitles.
 
 ## Commands
 
 ```bash
 npm install        # install deps
-npm run dev        # Vite dev server (sets COOP/COEP headers for SharedArrayBuffer)
+npm run dev        # Vite dev server
 npm run build      # tsc -b type-check, then vite build → dist/
-npm run preview    # serve the production build locally (also sets COOP/COEP)
+npm run preview    # serve the production build locally
 npm run lint       # eslint (flat config, typescript-eslint)
 npm run typecheck  # tsc -b --noEmit
 ```
@@ -25,19 +25,18 @@ There is no test suite yet. Deployment is automatic via `.github/workflows/deplo
 
 Everything heavy runs client-side through WASM/WebGPU. There is no server.
 
-**The decision flow lives in `src/lib/pipeline.ts`** (`generateSubtitles`) and is the single most important file to understand. Given a file it: (1) extracts embedded text subtitle tracks; if none, (2) transcribes audio with Whisper; if there's no audio or Whisper returns nothing, (3) captions sampled frames. It reports progress via an `onStatus` callback and returns `SubtitleTrack[]`. `src/App.tsx` runs it automatically once a video's metadata has loaded.
+**The decision flow lives in `src/lib/pipeline.ts`** (`generateSubtitles`) and is the single most important file to understand. Given a file it: (1) extracts embedded text subtitle tracks; if none, (2) transcribes audio with Whisper; if there's no audio or Whisper returns nothing, (3) returns a single empty `manual` track for the user to type into. It reports progress via an `onStatus` callback and returns `SubtitleTrack[]`. `src/App.tsx` runs it automatically once a file is loaded.
 
-**Three engines, each isolated behind a `src/lib/<engine>` module:**
+**Two engines, each isolated behind a `src/lib/<engine>` module:**
 
 - `src/lib/ffmpeg/service.ts` — singleton wrapper around **ffmpeg.wasm**. Probes streams (parses ffmpeg's log output — ffmpeg.wasm has no ffprobe), extracts embedded subs to SRT, decodes audio to 16 kHz mono f32 PCM for Whisper, and does both exports. ffmpeg.wasm runs in its own worker, so calls don't block the UI. Core is loaded at runtime from a CDN (not bundled). **Use the ESM core (`/dist/esm/`), not UMD** — @ffmpeg/ffmpeg's worker is a module worker that loads the core via `import()` and needs its `export default`; the UMD build fails with "failed to import ffmpeg-core.js". Runs single-threaded; the multi-threaded core is auto-selected only if the page is cross-origin isolated (it isn't, by default — see below).
 - `src/lib/asr/` + `src/workers/asr.worker.ts` — **Whisper via transformers.js** (`@huggingface/transformers`) in a dedicated worker. `transcribe(pcm)` spins up the worker, gets timestamped cues back, tears it down.
-- `src/lib/caption/` + `src/workers/caption.worker.ts` — **image captioning via transformers.js** in a worker. `src/lib/video/frames.ts` seeks a detached `<video>` and grabs downscaled `ImageBitmap`s (transferable) on the main thread; the worker captions them one at a time.
 
 Worker message shapes are typed in `src/workers/messages.ts`.
 
-**Subtitle core (`src/lib/subtitles/`)** is the shared data model every engine and component reads/writes: the `Cue`/`SubtitleTrack` types, SRT + WebVTT parse/serialize, and time helpers. All times are **seconds (float)**. Cues carry stable `uid()` ids used as React keys.
+**Subtitle core (`src/lib/subtitles/`)** is the shared data model every engine and component reads/writes: the `Cue`/`SubtitleTrack` types, SRT + WebVTT parse/serialize, and time helpers. All times are **seconds (float)**, but **two invariants are enforced in `edit.ts` and must hold everywhere**: (1) times snap to **tenths of a second** (`roundTenth`), and (2) **cues never overlap** — a cue's end can't exceed the next cue's start. Route every time change through `clampTimes` (edits + drags), new cues through `addCueAt`, and any ingested cue list (Whisper / imported / embedded) through `normalizeCues`. Cues carry stable `uid()` ids used as React keys.
 
-**UI (`src/components/`)** is plain React state in `App.tsx` (no state library): `FileDropzone`, `VideoPlayer` (renders the current cue as a styled overlay — this is also the burn-in preview), `Timeline` (cue blocks + draggable playhead, positioned by `time/duration`), `CueEditor`, `ExportPanel`.
+**UI (`src/components/`)** is plain React state in `App.tsx` (no state library): `FileDropzone`, `VideoPlayer` (renders the current cue as a styled overlay — this is also the burn-in preview), `Timeline` (cue blocks with **left/right drag handles** for start/end + a draggable playhead, positioned by `time/duration`; drags call `onAdjust` → `clampTimes`), `CueEditor` (tenth-second time fields + text), `ExportPanel`.
 
 ## Critical constraints (don't break these)
 

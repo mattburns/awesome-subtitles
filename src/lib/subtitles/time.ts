@@ -38,6 +38,19 @@ export function formatTimestamp(totalSeconds: number, comma = false): string {
   return `${hh}:${mm}:${ss}${comma ? ',' : '.'}${ms}`
 }
 
+/** Editor display at tenth-second precision, e.g. `00:01:02.5`. */
+export function formatTenths(totalSeconds: number): string {
+  const t = Math.max(0, totalSeconds)
+  const hours = Math.floor(t / 3600)
+  const minutes = Math.floor((t % 3600) / 60)
+  const secs = Math.floor(t % 60)
+  const tenths = Math.round((t - Math.floor(t)) * 10)
+  const hh = String(hours).padStart(2, '0')
+  const mm = String(minutes).padStart(2, '0')
+  const ss = String(secs).padStart(2, '0')
+  return `${hh}:${mm}:${ss}.${tenths}`
+}
+
 /** Compact clock for the UI scrubber, e.g. `1:02.5`. */
 export function formatClock(totalSeconds: number): string {
   const t = Math.max(0, totalSeconds)

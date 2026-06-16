@@ -1,5 +1,6 @@
 export * from './types'
 export * from './time'
+export * from './edit'
 export { parseSrt, serializeSrt } from './srt'
 export { parseVtt, serializeVtt, vttObjectUrl } from './vtt'
 

@@ -189,24 +189,45 @@ textarea {
   position: absolute;
   top: 8px;
   height: 48px;
-  padding: 2px 4px;
   background: var(--cue);
   border: 1px solid transparent;
   border-radius: 4px;
   overflow: hidden;
   text-align: left;
+  cursor: pointer;
 }
 .timeline__cue--selected {
   background: var(--cue-selected);
   border-color: #fff;
 }
 .timeline__cue-text {
+  display: -webkit-box;
+  padding: 2px 8px;
   font-size: 0.7rem;
   line-height: 1.1;
-  display: -webkit-box;
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+.timeline__handle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 8px;
+  background: rgba(255, 255, 255, 0.35);
+  cursor: ew-resize;
+  touch-action: none;
+}
+.timeline__handle:hover {
+  background: rgba(255, 255, 255, 0.7);
+}
+.timeline__handle--start {
+  left: 0;
+  border-radius: 4px 0 0 4px;
+}
+.timeline__handle--end {
+  right: 0;
+  border-radius: 0 4px 4px 0;
 }
 .timeline__playhead {
   position: absolute;

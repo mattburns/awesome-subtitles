@@ -9,6 +9,8 @@ interface Props {
   selectedId?: string
   onSeek: (time: number) => void
   onSelect: (id: string) => void
+  /** Adjust a cue edge (called repeatedly while dragging a handle). */
+  onAdjust: (id: string, patch: { start?: number; end?: number }) => void
 }
 
 const TICK_COUNT = 10
@@ -20,17 +22,45 @@ export function Timeline({
   selectedId,
   onSeek,
   onSelect,
+  onAdjust,
 }: Props) {
   const trackRef = useRef<HTMLDivElement>(null)
+  const drag = useRef<{ id: string; edge: 'start' | 'end' } | null>(null)
 
   const pct = (t: number) => (duration > 0 ? (t / duration) * 100 : 0)
 
-  const seekFromPointer = (e: PointerEvent) => {
+  const timeFromClientX = (clientX: number): number => {
     const el = trackRef.current
-    if (!el || duration <= 0) return
+    if (!el || duration <= 0) return 0
     const rect = el.getBoundingClientRect()
-    const ratio = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width))
-    onSeek(ratio * duration)
+    const ratio = Math.min(1, Math.max(0, (clientX - rect.left) / rect.width))
+    return ratio * duration
+  }
+
+  const seekFromPointer = (e: PointerEvent) => {
+    if (duration <= 0) return
+    onSeek(timeFromClientX(e.clientX))
+  }
+
+  // --- cue-edge drag handles ---
+  const startDrag = (e: PointerEvent, id: string, edge: 'start' | 'end') => {
+    e.stopPropagation()
+    e.preventDefault()
+    drag.current = { id, edge }
+    e.currentTarget.setPointerCapture(e.pointerId)
+  }
+  const moveDrag = (e: PointerEvent) => {
+    if (!drag.current) return
+    onAdjust(drag.current.id, { [drag.current.edge]: timeFromClientX(e.clientX) })
+  }
+  const endDrag = (e: PointerEvent) => {
+    if (!drag.current) return
+    drag.current = null
+    try {
+      e.currentTarget.releasePointerCapture(e.pointerId)
+    } catch {
+      // pointer already released
+    }
   }
 
   return (
@@ -51,13 +81,12 @@ export function Timeline({
           seekFromPointer(e)
         }}
         onPointerMove={(e) => {
-          if (e.buttons === 1) seekFromPointer(e)
+          if (!drag.current && e.buttons === 1) seekFromPointer(e)
         }}
       >
         {cues.map((cue) => (
-          <button
+          <div
             key={cue.id}
-            type="button"
             className={`timeline__cue${cue.id === selectedId ? ' timeline__cue--selected' : ''}`}
             style={{ left: `${pct(cue.start)}%`, width: `${Math.max(0.5, pct(cue.end - cue.start))}%` }}
             title={cue.text}
@@ -67,8 +96,24 @@ export function Timeline({
               onSeek(cue.start)
             }}
           >
+            <span
+              className="timeline__handle timeline__handle--start"
+              title="Drag to set start"
+              onPointerDown={(e) => startDrag(e, cue.id, 'start')}
+              onPointerMove={moveDrag}
+              onPointerUp={endDrag}
+              onClick={(e) => e.stopPropagation()}
+            />
             <span className="timeline__cue-text">{cue.text}</span>
-          </button>
+            <span
+              className="timeline__handle timeline__handle--end"
+              title="Drag to set end"
+              onPointerDown={(e) => startDrag(e, cue.id, 'end')}
+              onPointerMove={moveDrag}
+              onPointerUp={endDrag}
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
         ))}
 
         <div className="timeline__playhead" style={{ left: `${pct(currentTime)}%` }} />

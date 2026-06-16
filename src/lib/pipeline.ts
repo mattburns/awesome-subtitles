@@ -1,6 +1,6 @@
 import { transcribe } from './asr'
-import { captionFrames } from './caption'
 import { getFFmpeg } from './ffmpeg/service'
+import { normalizeCues } from './subtitles/edit'
 import { parseSrt } from './subtitles/srt'
 import { type SubtitleTrack, uid } from './subtitles/types'
 
@@ -11,7 +11,6 @@ export type PipelineStage =
   | 'extracting-subs'
   | 'extracting-audio'
   | 'transcribing'
-  | 'captioning'
   | 'done'
   | 'error'
 
@@ -30,17 +29,21 @@ function trackLabel(prefix: string, language: string | undefined, index: number)
   return `${prefix}${lang}${n}`
 }
 
+function emptyManualTrack(): SubtitleTrack {
+  return { id: uid('track'), label: 'Subtitles (manual)', origin: 'manual', cues: [] }
+}
+
 /**
- * The core decision flow:
+ * The decision flow:
  *   1. extract any embedded text subtitle tracks; if found, use them;
  *   2. else, if there's audio, transcribe it with Whisper;
- *   3. else (or if Whisper found nothing), describe frames every 5 seconds.
- * Reports progress through `onStatus` and resolves with the resulting tracks.
+ *   3. else (or if Whisper found nothing), start with an empty track for the
+ *      user to type subtitles into manually.
+ * All ingested cues are snapped to tenths and de-overlapped. Reports progress
+ * through `onStatus` and resolves with the resulting tracks.
  */
 export async function generateSubtitles(
   file: File,
-  src: string,
-  duration: number,
   onStatus: StatusFn,
 ): Promise<SubtitleTrack[]> {
   const ffmpeg = getFFmpeg()
@@ -60,7 +63,7 @@ export async function generateSubtitles(
       label: trackLabel('Embedded', e.stream.language, i),
       language: e.stream.language,
       origin: 'embedded',
-      cues: parseSrt(e.srt),
+      cues: normalizeCues(parseSrt(e.srt)),
     }))
   }
 
@@ -80,25 +83,17 @@ export async function generateSubtitles(
     })
     if (cues.length > 0) {
       onStatus({ stage: 'done', message: `Transcribed ${cues.length} cue(s).` })
-      return [{ id: uid('track'), label: 'Speech (Whisper)', origin: 'whisper', cues }]
+      return [
+        { id: uid('track'), label: 'Speech (Whisper)', origin: 'whisper', cues: normalizeCues(cues) },
+      ]
     }
   }
 
   onStatus({
-    stage: 'captioning',
+    stage: 'done',
     message: hasAudio
-      ? 'No speech detected — describing frames instead…'
-      : 'No audio — describing frames instead…',
+      ? 'No speech detected — add subtitles manually.'
+      : 'No audio — add subtitles manually.',
   })
-  const cues = await captionFrames(src, duration, {
-    intervalSec: 5,
-    onProgress: (fraction) =>
-      onStatus({
-        stage: 'captioning',
-        message: `Describing frames… ${Math.round(fraction * 100)}%`,
-        progress: fraction,
-      }),
-  })
-  onStatus({ stage: 'done', message: `Described ${cues.length} frame(s).` })
-  return [{ id: uid('track'), label: 'Frame descriptions', origin: 'caption', cues }]
+  return [emptyManualTrack()]
 }

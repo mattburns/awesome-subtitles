@@ -5,14 +5,16 @@ import { FileDropzone } from './components/FileDropzone'
 import { Timeline } from './components/Timeline'
 import { VideoPlayer } from './components/VideoPlayer'
 import { generateSubtitles, type PipelineStatus } from './lib/pipeline'
-import { parseSubtitles } from './lib/subtitles'
 import {
   type Cue,
   type SubtitleTrack,
+  addCueAt,
+  clampTimes,
   cueAt,
-  sortCues,
+  normalizeCues,
+  parseSubtitles,
   uid,
-} from './lib/subtitles/types'
+} from './lib/subtitles'
 
 export default function App() {
   const [file, setFile] = useState<File | null>(null)
@@ -49,16 +51,16 @@ export default function App() {
     [src],
   )
 
-  // Auto-run the generation pipeline once we have a source and its duration.
+  // Auto-run the generation pipeline once a file is loaded.
   useEffect(() => {
-    if (!file || !src || duration <= 0) return
+    if (!file || !src) return
     if (generatedFor.current === src) return
     generatedFor.current = src
 
     let cancelled = false
     ;(async () => {
       try {
-        const result = await generateSubtitles(file, src, duration, (s) => {
+        const result = await generateSubtitles(file, (s) => {
           if (!cancelled) setStatus(s)
         })
         if (cancelled) return
@@ -76,7 +78,7 @@ export default function App() {
     return () => {
       cancelled = true
     }
-  }, [file, src, duration])
+  }, [file, src])
 
   const seek = useCallback((time: number) => {
     if (videoRef.current) videoRef.current.currentTime = time
@@ -94,11 +96,14 @@ export default function App() {
 
   const updateCue = useCallback(
     (id: string, patch: Partial<Cue>) => {
-      mutateActiveCues((cs) =>
-        sortCues(cs.map((c) => (c.id === id ? { ...c, ...patch } : c))),
-      )
+      // Time changes are clamped so cues can't overlap; text is a plain set.
+      if ('start' in patch || 'end' in patch) {
+        mutateActiveCues((cs) => clampTimes(cs, id, patch, duration))
+      } else {
+        mutateActiveCues((cs) => cs.map((c) => (c.id === id ? { ...c, ...patch } : c)))
+      }
     },
-    [mutateActiveCues],
+    [mutateActiveCues, duration],
   )
 
   const deleteCue = useCallback(
@@ -107,21 +112,19 @@ export default function App() {
   )
 
   const addCue = useCallback(() => {
-    const start = currentTime
-    const newCue: Cue = { id: uid('cue'), start, end: start + 2, text: 'New cue' }
-    mutateActiveCues((cs) => sortCues([...cs, newCue]))
-    setSelectedCueId(newCue.id)
-  }, [currentTime, mutateActiveCues])
+    const { cues: next, id } = addCueAt(cues, currentTime, duration)
+    mutateActiveCues(() => next)
+    setSelectedCueId(id)
+  }, [cues, currentTime, duration, mutateActiveCues])
 
   const importSubtitles = useCallback(
     async (f: File) => {
       const text = await f.text()
-      const imported = parseSubtitles(f.name, text)
       const track: SubtitleTrack = {
         id: uid('track'),
         label: `Imported (${f.name})`,
         origin: 'imported',
-        cues: imported,
+        cues: normalizeCues(parseSubtitles(f.name, text)),
       }
       setTracks((prev) => [...prev, track])
       setActiveTrackId(track.id)
@@ -160,6 +163,7 @@ export default function App() {
             selectedId={selectedCueId}
             onSeek={seek}
             onSelect={setSelectedCueId}
+            onAdjust={updateCue}
           />
 
           <div className="app__columns">

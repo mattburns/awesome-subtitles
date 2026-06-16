@@ -7,9 +7,9 @@ Automatically generate editable subtitles to embed or burn — **entirely in you
 1. **Open a video** (drag-and-drop or browse).
 2. **Get subtitles automatically**, in this order:
    - extract any **embedded** subtitle tracks already in the file; otherwise
-   - **transcribe speech** with Whisper; otherwise (silent video)
-   - **describe the frames** every 5 seconds and use those as captions.
-3. **Edit** cues — text and timing — on a timeline synced to the video player.
+   - **transcribe speech** with Whisper; otherwise (no audio)
+   - start with an **empty track** to type subtitles into manually.
+3. **Edit** cues — text and timing — on a timeline synced to the video player. Drag a cue's left/right edge to adjust its start/end; cues snap to tenths of a second and can't overlap.
 4. **Export** with either **toggleable** (soft) subtitles (fast, stream-copied) or **burnt-in** subtitles (re-encoded into the picture).
 
 ## Develop
@@ -30,6 +30,6 @@ Pushing to `main` builds and publishes to GitHub Pages via `.github/workflows/de
 
 ## Tech
 
-Vite · React · TypeScript · [ffmpeg.wasm](https://github.com/ffmpegwasm/ffmpeg.wasm) · [transformers.js](https://github.com/huggingface/transformers.js) (Whisper + image captioning).
+Vite · React · TypeScript · [ffmpeg.wasm](https://github.com/ffmpegwasm/ffmpeg.wasm) · [transformers.js](https://github.com/huggingface/transformers.js) (Whisper).
 
 See [CLAUDE.md](./CLAUDE.md) for architecture details.

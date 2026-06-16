@@ -1,5 +1,5 @@
 import type { Cue } from '../lib/subtitles/types'
-import { formatTimestamp, parseTimestamp } from '../lib/subtitles/time'
+import { formatTenths, parseTimestamp } from '../lib/subtitles/time'
 
 interface Props {
   cues: Cue[]
@@ -51,16 +51,20 @@ export function CueEditor({
             >
               <div className="cue__times">
                 <input
+                  // key includes the value so external changes (e.g. dragging
+                  // a timeline handle) refresh this uncontrolled field.
+                  key={`start-${cue.start}`}
                   className="cue__time"
-                  defaultValue={formatTimestamp(cue.start, false)}
+                  defaultValue={formatTenths(cue.start)}
                   onBlur={(e) => updateTime(cue.id, 'start', e.target.value)}
                 />
                 <button type="button" className="cue__seek" onClick={() => onSeek(cue.start)}>
                   ▶
                 </button>
                 <input
+                  key={`end-${cue.end}`}
                   className="cue__time"
-                  defaultValue={formatTimestamp(cue.end, false)}
+                  defaultValue={formatTenths(cue.end)}
                   onBlur={(e) => updateTime(cue.id, 'end', e.target.value)}
                 />
               </div>
@@ -68,6 +72,7 @@ export function CueEditor({
                 className="cue__text"
                 value={cue.text}
                 rows={2}
+                placeholder="Type subtitle…"
                 onChange={(e) => onChange(cue.id, { text: e.target.value })}
               />
               <button type="button" className="cue__delete" onClick={() => onDelete(cue.id)}>

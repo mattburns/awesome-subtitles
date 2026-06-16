@@ -20,14 +20,3 @@ export type AsrResponse =
   | { type: 'ready' }
   | { type: 'done'; cues: Cue[] }
   | { type: 'error'; message: string }
-
-// --- Frame-captioning worker protocol ---
-export type CaptionRequest =
-  | { type: 'load' }
-  | { type: 'caption'; id: number; time: number; bitmap: ImageBitmap }
-
-export type CaptionResponse =
-  | { type: 'progress'; data: ModelProgress }
-  | { type: 'ready' }
-  | { type: 'caption'; id: number; time: number; text: string }
-  | { type: 'error'; message: string }
