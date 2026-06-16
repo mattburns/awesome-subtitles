@@ -7,12 +7,18 @@ import {
   TEXT_SUBTITLE_CODECS,
 } from './types'
 
-// ffmpeg.wasm core is loaded at runtime (not bundled). The multi-threaded
-// build needs SharedArrayBuffer (cross-origin isolation); we fall back to the
-// single-threaded build when it isn't available.
+// ffmpeg.wasm core is loaded at runtime (not bundled). We use the ESM build:
+// @ffmpeg/ffmpeg's worker is a module worker, so it loads the core with
+// dynamic import() and needs the ESM core's `export default` — the UMD build
+// has no default export and fails with "failed to import ffmpeg-core.js".
+//
+// We use the single-threaded core. The multi-threaded core needs
+// SharedArrayBuffer (cross-origin isolation), which isn't reliably available
+// on GitHub Pages — see the note in index.html / CLAUDE.md. The MT build is
+// auto-selected only if the page happens to be cross-origin isolated.
 const CORE_VERSION = '0.12.10'
-const MT_BASE = `https://unpkg.com/@ffmpeg/core-mt@${CORE_VERSION}/dist/umd`
-const ST_BASE = `https://unpkg.com/@ffmpeg/core@${CORE_VERSION}/dist/umd`
+const MT_BASE = `https://unpkg.com/@ffmpeg/core-mt@${CORE_VERSION}/dist/esm`
+const ST_BASE = `https://unpkg.com/@ffmpeg/core@${CORE_VERSION}/dist/esm`
 
 const STREAM_RE =
   /Stream #0:(\d+)(?:\[[^\]]*\])?(?:\((\w+)\))?: (Video|Audio|Subtitle): (\w+)/

@@ -9,12 +9,19 @@
       content="Generate, edit, and burn subtitles entirely in your browser — your video never leaves your machine."
     />
     <!--
-      coi-serviceworker registers a service worker that injects COOP/COEP
-      response headers so SharedArrayBuffer (and multi-threaded ffmpeg.wasm)
-      works on static hosts like GitHub Pages that can't set headers.
-      Must load before the app. The first load registers the SW and reloads.
+      We run single-threaded (no SharedArrayBuffer), so no COOP/COEP service
+      worker is needed. This one-time cleanup unregisters any stale
+      coi-serviceworker left over from an earlier deploy, which would otherwise
+      keep intercepting (and failing) fetches.
     -->
-    <script src="coi-serviceworker.min.js"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker
+          .getRegistrations()
+          .then((regs) => regs.forEach((r) => r.unregister()))
+          .catch(() => {})
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>

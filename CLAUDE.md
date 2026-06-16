@@ -29,7 +29,7 @@ Everything heavy runs client-side through WASM/WebGPU. There is no server.
 
 **Three engines, each isolated behind a `src/lib/<engine>` module:**
 
-- `src/lib/ffmpeg/service.ts` — singleton wrapper around **ffmpeg.wasm**. Probes streams (parses ffmpeg's log output — ffmpeg.wasm has no ffprobe), extracts embedded subs to SRT, decodes audio to 16 kHz mono f32 PCM for Whisper, and does both exports. ffmpeg.wasm runs in its own worker, so calls don't block the UI. Core is loaded at runtime from a CDN (not bundled); it picks the multi-threaded core when `crossOriginIsolated`, else single-threaded.
+- `src/lib/ffmpeg/service.ts` — singleton wrapper around **ffmpeg.wasm**. Probes streams (parses ffmpeg's log output — ffmpeg.wasm has no ffprobe), extracts embedded subs to SRT, decodes audio to 16 kHz mono f32 PCM for Whisper, and does both exports. ffmpeg.wasm runs in its own worker, so calls don't block the UI. Core is loaded at runtime from a CDN (not bundled). **Use the ESM core (`/dist/esm/`), not UMD** — @ffmpeg/ffmpeg's worker is a module worker that loads the core via `import()` and needs its `export default`; the UMD build fails with "failed to import ffmpeg-core.js". Runs single-threaded; the multi-threaded core is auto-selected only if the page is cross-origin isolated (it isn't, by default — see below).
 - `src/lib/asr/` + `src/workers/asr.worker.ts` — **Whisper via transformers.js** (`@huggingface/transformers`) in a dedicated worker. `transcribe(pcm)` spins up the worker, gets timestamped cues back, tears it down.
 - `src/lib/caption/` + `src/workers/caption.worker.ts` — **image captioning via transformers.js** in a worker. `src/lib/video/frames.ts` seeks a detached `<video>` and grabs downscaled `ImageBitmap`s (transferable) on the main thread; the worker captions them one at a time.
 
@@ -41,10 +41,10 @@ Worker message shapes are typed in `src/workers/messages.ts`.
 
 ## Critical constraints (don't break these)
 
-- **SharedArrayBuffer / COOP+COEP.** Multi-threaded ffmpeg.wasm needs `SharedArrayBuffer`, which needs `Cross-Origin-Opener-Policy: same-origin` + `Cross-Origin-Embedder-Policy: require-corp`. Dev/preview set these via `vite.config.ts`. **GitHub Pages can't set headers**, so `public/coi-serviceworker.min.js` (vendored, referenced from `index.html`) injects them via a service worker. Keep that script tag, keep the file at the site root, and keep cross-origin fetches (CDN/model) CORS-enabled or they'll be blocked by COEP.
+- **No cross-origin isolation (deliberate).** We do **not** set COOP/COEP and there is **no service worker**. Multi-threaded ffmpeg would need `SharedArrayBuffer` (hence cross-origin isolation), but on GitHub Pages the only way to get it is a header-injecting service worker (coi-serviceworker), which proved fragile here — it intercepted and failed fetches, and COEP `require-corp` risks blocking the cross-origin model/CDN downloads. So we run **single-threaded** and skip isolation entirely. `index.html` carries a one-time cleanup that unregisters any stale coi-serviceworker from earlier deploys — leave it until you're confident no client still has the old SW. To re-enable multi-threading, you'd need reliable COOP/COEP (e.g. self-host every asset same-origin) and the MT core would activate automatically via the `crossOriginIsolated` check in `service.ts`.
 - **GitHub Pages base path.** `vite.config.ts` sets `base` to `/awesome-subtitles/` (override with the `VITE_BASE` env var for a custom domain / user page). Use root-relative or imported asset URLs so the base is applied; don't hard-code `/`.
 - **Don't bundle models or ffmpeg core.** Whisper/caption models load from the Hugging Face CDN and cache in the browser; ffmpeg core loads from unpkg. Bundling them would blow past GitHub Pages' 100 MB/file limit. The ONNX runtime WASM (~21 MB) is emitted to `dist/assets` and only fetched when the WASM backend is used.
-- **Burn-in is the slow path** — it re-encodes video with libx264 in WASM (CPU-only). Soft-sub export is a stream copy and fast. Don't conflate them.
+- **Burn-in is the slow path** — it re-encodes video with libx264 in WASM, single-threaded and CPU-only, so it's slow on long/HD clips. Soft-sub export is a stream copy and fast. Don't conflate them.
 
 ## Conventions
 

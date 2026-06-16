@@ -26,7 +26,7 @@ Requires a modern browser. WebGPU (Chrome/Edge, recent Safari/Firefox) makes the
 
 Pushing to `main` builds and publishes to GitHub Pages via `.github/workflows/deploy.yml`. The site is served from `/awesome-subtitles/`; set the `VITE_BASE` env var at build time for a custom domain or user/org page.
 
-> **How is this serverless?** `coi-serviceworker` injects the COOP/COEP headers that `SharedArrayBuffer` (and multi-threaded ffmpeg.wasm) require, since GitHub Pages can't set headers itself. Models are fetched from the Hugging Face CDN and cached locally on first use.
+> **How is this serverless?** All processing runs as WebAssembly / WebGPU in your browser; nothing is uploaded. ffmpeg runs single-threaded (no `SharedArrayBuffer` / cross-origin-isolation headers needed, which GitHub Pages can't set), so burn-in re-encoding is CPU-bound and slower than a desktop ffmpeg. Models and the ffmpeg core are fetched from CDNs (Hugging Face / unpkg) and cached locally on first use.
 
 ## Tech
 
