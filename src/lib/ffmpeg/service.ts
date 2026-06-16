@@ -149,8 +149,13 @@ export class FFmpegService {
   }
 
   /**
-   * Toggleable subtitles: copy all streams and add the subtitles as a soft
-   * track. Fast — the video is stream-copied, not re-encoded.
+   * Toggleable subtitles: keep the source's video + audio, drop any existing
+   * subtitle tracks, and add the edited subtitles as a single soft track.
+   * Fast — video/audio are stream-copied, not re-encoded.
+   *
+   * We map `0:v?`/`0:a?` (rather than `0`) so the source's own subtitle
+   * streams are replaced, not duplicated. The `?` keeps it working for files
+   * with no audio. (Side effect: data/attachment/chapter streams are dropped.)
    */
   async exportWithSoftSubs(
     file: File,
@@ -169,7 +174,8 @@ export class FFmpegService {
       [
         '-i', 'in.bin',
         '-i', 'subs.srt',
-        '-map', '0',
+        '-map', '0:v?',
+        '-map', '0:a?',
         '-map', '1',
         '-c', 'copy',
         '-c:s', subCodec,
@@ -201,6 +207,8 @@ export class FFmpegService {
         '-preset', 'ultrafast',
         '-crf', '23',
         '-c:a', 'copy',
+        // Burned in, so don't also carry a soft subtitle track in the output.
+        '-sn',
         outName,
       ],
       outName,
