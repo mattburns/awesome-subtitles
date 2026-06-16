@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>awesome-subtitles</title>
+    <meta
+      name="description"
+      content="Generate, edit, and burn subtitles entirely in your browser — your video never leaves your machine."
+    />
+    <!--
+      coi-serviceworker registers a service worker that injects COOP/COEP
+      response headers so SharedArrayBuffer (and multi-threaded ffmpeg.wasm)
+      works on static hosts like GitHub Pages that can't set headers.
+      Must load before the app. The first load registers the SW and reloads.
+    -->
+    <script src="coi-serviceworker.min.js"></script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

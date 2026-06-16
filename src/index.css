@@ -1,0 +1,362 @@
+:root {
+  --bg: #0f1115;
+  --panel: #181b22;
+  --panel-2: #20242d;
+  --border: #2a2f3a;
+  --text: #e6e9ef;
+  --muted: #9aa3b2;
+  --accent: #5b9dff;
+  --accent-2: #3a7bd5;
+  --cue: #2f6f4f;
+  --cue-selected: #4caf7d;
+  --danger: #e06c75;
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+button {
+  font: inherit;
+  color: var(--text);
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.45rem 0.8rem;
+  cursor: pointer;
+}
+button:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+input,
+textarea {
+  font: inherit;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.3rem 0.4rem;
+}
+
+.app {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 1.5rem 1rem 4rem;
+}
+
+.app__header {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+.app__title {
+  margin: 0;
+  font-size: 1.8rem;
+}
+.app__tagline {
+  margin: 0.25rem 0 0;
+  color: var(--muted);
+}
+
+/* Dropzone */
+.dropzone {
+  border: 2px dashed var(--border);
+  border-radius: 12px;
+  padding: 4rem 2rem;
+  text-align: center;
+  cursor: pointer;
+  background: var(--panel);
+  transition: border-color 0.15s, background 0.15s;
+}
+.dropzone--active,
+.dropzone:hover {
+  border-color: var(--accent);
+  background: var(--panel-2);
+}
+.dropzone__icon {
+  font-size: 3rem;
+}
+.dropzone__title {
+  font-size: 1.15rem;
+  margin: 0.5rem 0 0.25rem;
+}
+.dropzone__hint {
+  color: var(--muted);
+  margin: 0;
+}
+
+/* Player */
+.player {
+  position: relative;
+  background: #000;
+  border-radius: 10px;
+  overflow: hidden;
+}
+.player__video {
+  display: block;
+  width: 100%;
+  max-height: 55vh;
+}
+.player__caption {
+  position: absolute;
+  left: 50%;
+  bottom: 12%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  pointer-events: none;
+  text-align: center;
+  max-width: 90%;
+}
+.player__caption span {
+  background: rgba(0, 0, 0, 0.72);
+  color: #fff;
+  font-size: clamp(1rem, 2.6vw, 1.6rem);
+  line-height: 1.3;
+  padding: 0.05em 0.4em;
+  border-radius: 3px;
+}
+
+/* Status */
+.status {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0.75rem 0;
+  padding: 0.6rem 0.9rem;
+  border-radius: 8px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+}
+.status progress {
+  flex: 1;
+}
+.status--error {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+.status--done {
+  border-color: var(--cue-selected);
+  color: var(--cue-selected);
+}
+
+/* Timeline */
+.timeline {
+  margin: 1rem 0;
+  user-select: none;
+}
+.timeline__ruler {
+  position: relative;
+  height: 1.1rem;
+  margin-bottom: 2px;
+}
+.timeline__tick {
+  position: absolute;
+  transform: translateX(-50%);
+  font-size: 0.7rem;
+  color: var(--muted);
+}
+.timeline__tick:first-child {
+  transform: none;
+}
+.timeline__tick:last-child {
+  transform: translateX(-100%);
+}
+.timeline__track {
+  position: relative;
+  height: 64px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  cursor: pointer;
+}
+.timeline__cue {
+  position: absolute;
+  top: 8px;
+  height: 48px;
+  padding: 2px 4px;
+  background: var(--cue);
+  border: 1px solid transparent;
+  border-radius: 4px;
+  overflow: hidden;
+  text-align: left;
+}
+.timeline__cue--selected {
+  background: var(--cue-selected);
+  border-color: #fff;
+}
+.timeline__cue-text {
+  font-size: 0.7rem;
+  line-height: 1.1;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.timeline__playhead {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--accent);
+  pointer-events: none;
+}
+
+/* Columns */
+.app__columns {
+  display: grid;
+  grid-template-columns: 1fr 280px;
+  gap: 1rem;
+  align-items: start;
+}
+@media (max-width: 800px) {
+  .app__columns {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Editor */
+.editor {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.75rem;
+}
+.editor__toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+.editor__count {
+  color: var(--muted);
+}
+.editor__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 50vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.cue {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 0.5rem;
+  align-items: center;
+  padding: 0.4rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--panel-2);
+}
+.cue--active {
+  border-color: var(--accent);
+}
+.cue--selected {
+  outline: 1px solid var(--cue-selected);
+}
+.cue__times {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  align-items: center;
+}
+.cue__time {
+  width: 7.5rem;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.8rem;
+}
+.cue__seek {
+  padding: 0 0.3rem;
+  font-size: 0.7rem;
+}
+.cue__text {
+  resize: vertical;
+  width: 100%;
+}
+.cue__delete {
+  color: var(--danger);
+  border-color: transparent;
+  background: transparent;
+}
+
+/* Sidebar */
+.app__sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.tracks,
+.export {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.75rem;
+}
+.tracks__title,
+.export__title {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+}
+.tracks__list {
+  list-style: none;
+  margin: 0 0 0.5rem;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+.tracks__empty {
+  color: var(--muted);
+  margin: 0 0 0.5rem;
+}
+.tracks__import {
+  display: inline-block;
+  cursor: pointer;
+  color: var(--accent);
+  font-size: 0.85rem;
+}
+.export__buttons {
+  display: flex;
+  gap: 0.5rem;
+}
+.export__buttons button {
+  flex: 1;
+  background: var(--accent-2);
+  border-color: var(--accent-2);
+}
+.export__status {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-top: 0.6rem;
+  font-size: 0.85rem;
+}
+.export__status progress {
+  width: 100%;
+}
+.export__hint {
+  color: var(--muted);
+  font-size: 0.8rem;
+  margin: 0.6rem 0 0;
+}
+.app__reset {
+  width: 100%;
+}
